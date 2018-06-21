@@ -69,6 +69,10 @@ public class DLanguageToolsConfigurable implements SearchableConfigurable {
     private JTabbedPane tabbedPane1;
     private JCheckBox chkNativeCodeCompletion;
     private JCheckBox disableFormatterSyntaxErrorCheckBox;
+    private TextFieldWithBrowseButton workspaceDPath;
+    private JTextField workspaceDVersion;
+    private JButton workspaceDAutoFind;
+    private RawCommandLineEditor workspaceDFlags;
 
     public DLanguageToolsConfigurable(@NotNull final Project project) {
         this.propertiesComponent = PropertiesComponent.getInstance();
@@ -86,6 +90,10 @@ public class DLanguageToolsConfigurable implements SearchableConfigurable {
                 dubAutoFind, dubVersion, "--version", Topics.DUB_TOOL_CHANGE),
             new Tool(project, "dscanner", ToolKey.DSCANNER_KEY, dscannerPath, dscannerFlags,
                 dscannerAutoFind, dscannerVersion, "--version", Topics.DSCANNER_TOOL_CHANGE),
+
+            new Tool(project, "workspace-d", ToolKey.WORKSPACE_D_KEY, workspaceDPath, workspaceDFlags,
+                workspaceDAutoFind, workspaceDVersion, "--version", Topics.WORKSPACE_D_TOOL_CHANGE),
+
             new Tool(project, "dcd-server", ToolKey.DCD_SERVER_KEY, dcdPath, dcdFlags,
                 dcdAutoFind, dcdVersion, "--version", Topics.DCD_SERVER_TOOL_CHANGE),
             new Tool(project, "dcd-client", ToolKey.DCD_CLIENT_KEY, dcdClientPath, dcdClientFlags,

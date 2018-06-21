@@ -120,6 +120,13 @@ public class IdeaInformationProxy {
             params.put("Dub Version", dubVersion);
         }
 
+        final String workspaceDPath = ToolKey.WORKSPACE_D_KEY.getPath();
+        if (workspaceDPath != null) {
+            final String workspaceDVersion = DLanguageToolsConfigurable
+                .getVersion(workspaceDPath, "--version");
+            params.put("WorkspaceD Version", workspaceDVersion);
+        }
+
         final String dcdServerPath = ToolKey.DCD_SERVER_KEY.getPath();
         if (dcdServerPath != null) {
             final String dcdServerVersion = DLanguageToolsConfigurable

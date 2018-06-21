@@ -263,8 +263,8 @@
             <add-to-group group-id="CodeFormatGroup" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt M"/>
         </action>
-        <action id="io.github.intellij.dlanguage.RestartDCD" class="io.github.intellij.dlanguage.actions.RestartDCD"
-                   text="Restart DCD Server" description="Restarts the DCD server">
+        <action id="io.github.intellij.dlanguage.RestartWorkspaceD" class="io.github.intellij.dlanguage.actions.RestartWorkspaceD"
+                   text="Restart Workspace-D" description="Restarts Workspace-d">
              <add-to-group group-id="ToolsMenu" anchor="last"/>
            </action>
         <action id="io.github.intellij.dlanguage.ProcessDLibs" class="io.github.intellij.dlanguage.actions.ProcessDLibs"
@@ -275,8 +275,8 @@
 
     <module-components>
         <component>
-            <implementation-class>io.github.intellij.dlanguage.codeinsight.dcd.DCDCompletionServer</implementation-class>
-            <interface-class>io.github.intellij.dlanguage.codeinsight.dcd.DCDCompletionServer</interface-class>
+            <implementation-class>io.github.intellij.dlanguage.codeinsight.dcd.WorkspaceD</implementation-class>
+            <interface-class>io.github.intellij.dlanguage.codeinsight.dcd.WorkspaceD</interface-class>
         </component>
     </module-components>
 
