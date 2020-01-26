@@ -28,6 +28,7 @@ import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.roots.impl.OrderEntryUtil
 import com.intellij.openapi.roots.libraries.Library
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
+import com.intellij.openapi.roots.libraries.PersistentLibraryKind
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.SystemInfo
@@ -37,6 +38,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.ui.components.JBList
 import com.intellij.util.Consumer
 import io.github.intellij.dlanguage.icons.DlangIcons
+import io.github.intellij.dlanguage.library.DlangLibraryType
 import io.github.intellij.dlanguage.module.DlangModuleType
 import io.github.intellij.dlanguage.project.DubConfigurationParser
 import io.github.intellij.dlanguage.project.DubPackage
@@ -56,7 +58,7 @@ class ProcessDLibs : AnAction("Process D Libraries", "Processes the D Libraries"
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project
-        if (project == null) {
+        if (project == null || project.isDisposed) {
             displayError(e, "Unable to process D libraries - No active project.")
             return
         }
@@ -89,6 +91,8 @@ class ProcessDLibs : AnAction("Process D Libraries", "Processes the D Libraries"
                 val task = object : Task.Backgroundable(project,
                     "Updating Dub Libraries") {
                     override fun run(indicator: ProgressIndicator) {
+                        indicator.text = "processing libs for ${module.name}"
+                        indicator.isIndeterminate = true
                         processDLibsImpl(project, module, mostlySilentMode, buildBefore)
                     }
                 }
@@ -97,6 +101,8 @@ class ProcessDLibs : AnAction("Process D Libraries", "Processes the D Libraries"
             }, ModalityState.defaultModalityState())
         }
 
+        // Worth seeing if this is optimal. Refer to documentation here:
+        // http://www.jetbrains.org/intellij/sdk/docs/reference_guide/project_model/library.html
         private fun processDLibsImpl(project: Project, module: Module,
                                      mostlySilentMode: Boolean, buildBefore: Boolean) {
             //todo needs build/fetch before adding libs, also needs to keep track of libs
@@ -106,13 +112,29 @@ class ProcessDLibs : AnAction("Process D Libraries", "Processes the D Libraries"
                 model.orderEntries
                         .filterIsInstance<LibraryOrderEntry>()
                         .forEach {
-                            it.library?.let {
-                                model.moduleLibraryTable.removeLibrary(it)
+                            it.library?.let { lib ->
+                                model.moduleLibraryTable.removeLibrary(lib)
                             }
                             model.removeOrderEntry(it)
                         }
             }
-            //        removeDLibs(module, project);//this is not necessary since intellij filters out duplicate libraries.
+
+            // this should not be necessary since intellij is supposed to filter out duplicate libraries.
+            // see #451 #538
+            LibraryTablesRegistrar.getInstance()
+                .getLibraryTable(project)
+                .libraries
+                .forEach { lib ->
+                    ApplicationManager.getApplication().invokeAndWait {
+                        //removeLibraryIfNeeded(module, lib)
+
+                        val model = ModifiableModelsProvider.SERVICE.getInstance()
+                            .getLibraryTableModifiableModel(module.project)
+
+                        model.removeLibrary(lib)
+                        //.commit()
+                    }
+                }
 
             // ask dub for required libs
             val dubPath = ToolKey.DUB_KEY.path
@@ -168,7 +190,7 @@ class ProcessDLibs : AnAction("Process D Libraries", "Processes the D Libraries"
         }
 
         private fun processDLibs(project: Project?, module: Module) {
-            if (project == null) {
+            if (project == null || project.isDisposed) {
                 LOG.warn("Unable to process D libraries - No active D project.")
                 //displayError(project, "Unable to process D libraries - No active D project.");
                 return
@@ -184,7 +206,7 @@ class ProcessDLibs : AnAction("Process D Libraries", "Processes the D Libraries"
             val projectLibraryModel = projectLibraryTable
                 .modifiableModel
 
-            val library = projectLibraryModel.createLibrary(libraryName)
+            val library = projectLibraryModel.createLibrary(libraryName, DlangLibraryType.DLANG_LIBRARY)
             val libraryModel = library.modifiableModel
 
             if (sources != null) {
@@ -279,20 +301,13 @@ class ProcessDLibs : AnAction("Process D Libraries", "Processes the D Libraries"
             return sources
         }
 
-//    private fun removeDLibs(module: Module, project: Project) {
-//        val projectLibraryTable = LibraryTablesRegistrar.getInstance()
-//            .getLibraryTable(project)
-//        for (lib in projectLibraryTable.libraries) {
-//            removeLibraryIfNeeded(module, lib.name)
-//        }
-//    }
-
-        private fun removeLibraryIfNeeded(module: Module, libraryName: String?) {
+        private fun removeLibraryIfNeeded(module: Module, lib: Library) {
             ApplicationManager.getApplication().assertIsDispatchThread()
 
             val modelsProvider = ModifiableModelsProvider.SERVICE.getInstance()
             val model = modelsProvider.getModuleModifiableModel(module)
-            val dLibraryEntry = OrderEntryUtil.findLibraryOrderEntry(model, libraryName!!)
+            //val dLibraryEntry = OrderEntryUtil.findLibraryOrderEntry(model, lib.name)
+            val dLibraryEntry = OrderEntryUtil.findLibraryOrderEntry(model, lib)
 
             if (dLibraryEntry != null) {
                 ApplicationManager.getApplication().runWriteAction {
