@@ -5,8 +5,10 @@ import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
+import com.intellij.openapi.vfs.impl.BulkVirtualFileListenerAdapter;
 import org.jetbrains.annotations.NotNull;
+
+import static com.intellij.openapi.vfs.VirtualFileManager.VFS_CHANGES;
 
 /**
  * Created by francis on 1/27/2018.
@@ -18,8 +20,10 @@ public class DubListenerComponent implements StartupActivity {
         for (final Module module : ModuleManager.getInstance(project).getModules()) {
             final VirtualFile dubFile = DubConfigFileListener.getDubFileFromModule(module);
             if (dubFile != null) {
-                VirtualFileManager.getInstance()
-                    .addVirtualFileListener(new DubConfigFileListener(dubFile, project, module));
+                module.getProject()
+                    .getMessageBus()
+                    .connect()
+                    .subscribe(VFS_CHANGES, new BulkVirtualFileListenerAdapter(new DubConfigFileListener(dubFile, project, module)));
             }
         }
     }
